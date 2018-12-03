@@ -137,7 +137,8 @@ def load_config() -> ChainMap:
 def main() -> int:
     config = load_config()
     parser = ArgumentParser(
-        description=__doc__, formatter_class=ArgumentDefaultsHelpFormatter
+        description=__doc__, formatter_class=ArgumentDefaultsHelpFormatter,
+        epilog="{} @ {}".format(__license__, __author__)
     )
     parser.add_argument(
         "file",

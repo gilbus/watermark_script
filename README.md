@@ -47,4 +47,6 @@ optional arguments:
   -d, --dump-default-config
                         Print the default config in TOML format, useful to
                         create a local config. (default: False)
+
+AGPLv3 @ tluettje
 ```
