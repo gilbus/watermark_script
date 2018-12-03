@@ -1,0 +1,38 @@
+\documentclass[11pt,a4paper]{scrartcl}
+
+\usepackage[utf8]{inputenc} % Sets encofing for the input.
+\usepackage[T1]{fontenc} % Sets font encoding for the output.
+\usepackage{lmodern} % Font that works well with T1 font encoding and microtype.
+\usepackage[a4paper, left=1mm, right=1mm, bottom=17mm, footskip=5mm]{geometry}
+
+\usepackage[ngerman]{babel}
+\usepackage{graphicx}
+
+\usepackage[automark]{scrlayer-scrpage}
+\clearpairofpagestyles%
+
+\setkomafont{pageheadfoot}{\bfseries}
+
+%\cfoot{Test}
+%\rofoot{\hspace{5mm}}
+%\lofoot{\vspace{7mm}\\Wir freuen uns immer über neue Versionen.}
+\cfoot{%
+   \begin{minipage}[b]{.8\textwidth}
+      \begin{center}
+         Die Fachschaft freut sich immer über neuere Protokolle/Zusammenfassungen
+         und ist bereit diese gegen Speis und Trank einzutauschen. Viel Erfolg (:
+      \end{center}
+   \end{minipage}%
+   \begin{minipage}[b]{.2\textwidth}
+      \includegraphics[width=\textwidth]{FS-Logo.png}
+   \end{minipage}
+}
+\setlength{\headheight}{23pt}
+\begin{document}
+\hspace*{\fill}
+\rotatebox{90}{%
+   \hspace*{\fill}
+   info@fachschaft.techfak.de -- M3-107 -- http://fachschaft.techfak.de
+   \hspace*{\fill}
+}
+\end{document}
