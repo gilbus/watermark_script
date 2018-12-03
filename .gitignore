@@ -275,3 +275,6 @@ Session.vim
 tags
 # Persistent undo
 [._]*.un~
+
+out/*
+!out/README.md
