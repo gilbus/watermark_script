@@ -25,7 +25,7 @@ except ImportError:
 # sorry for the language mess, it once started in german and i automatically extended it
 # in english...
 
-__license__ = "AGPLv3 or later"
+__license__ = "AGPLv3"
 __author__ = "tluettje"
 __version__ = "1.0"
 __url__ = "github.com/gilbus/watermark_script"
