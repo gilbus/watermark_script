@@ -278,3 +278,5 @@ tags
 
 out/*
 !out/README.md
+# ignore any local config
+config.toml

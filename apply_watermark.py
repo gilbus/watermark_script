@@ -11,6 +11,8 @@ namens `config.toml` im gleichen Ordner wie dieses Skript geändert werden.
 from pathlib import Path
 from subprocess import run, STDOUT, PIPE as CAPTURE, CalledProcessError
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
+from sys import stderr
+from string import Template
 from shutil import which
 from collections import ChainMap
 
@@ -19,6 +21,9 @@ try:
 except ImportError:
     print("This script requires python(3?)-toml, please install it")
     exit(1)
+
+# sorry for the language mess, it once started in german and i automatically extended it
+# in english...
 
 __license__ = "AGPLv3 or later"
 __author__ = "tluettje"
@@ -47,7 +52,6 @@ Beim Öffnen der PDF-Datei ist ein Fehler aufgetreten:
     <span foreground='red'>{error}</span>
 """
 
-
 PDFTK_CALL_ERROR = """
 Bei dem Aufruf von <b>pdftk</b> ist folgender Fehler aufgetreten:
     <span foreground='red'>{{error}}</span>
@@ -60,7 +64,6 @@ Auf Wiedersehen.
 """.format(
     author=__author__, url=__url__
 )
-
 
 PDFTK_UNKNOWN_ERROR = """Es ist ein unbekannter Fehler aufgetreten:
 <span foreground='red'>{{error}}</span>"""
@@ -76,12 +79,22 @@ Es scheint alles funktioniert zu haben. Die signierte Datei wurde unter
 gespeichert.
 Einen schönen Tag noch (:
 """
+
+OUTPUT_TEMPLATE_ERROR = """
+Beim Einsetzen der Werte in das Template (`{template.template}`) für den Namen der
+Ausgabedatei ist ein Fehler aufgetreten:
+<span foreground='red'>{error}</span>
+"""
+
 # }}}
 default_config = {
-    "output_folder": Path(__file__).parent / "out",
-    "watermark_pdf": Path(__file__).parent / "resources" / "fs_watermark.pdf",
+    "output_folder": Path(Path(__file__).parent / "out").absolute(),
+    "watermark_pdf": Path(
+        Path(__file__).parent / "resources" / "fs_watermark.pdf"
+    ).absolute(),
     "zenity_path": which("zenity"),
     "pdftk_path": which("pdftk"),
+    "output_template": "${stem}_watermark${suffix}",
 }
 
 local_config_file = Path(__file__).parent / "config.toml"
@@ -95,22 +108,28 @@ def load_config() -> ChainMap:
     config = ChainMap(default_config)
     try:
         local_config = toml.loads(local_config_file.read_text())
-        print("Using local config from: ", local_config_file)
-        return config.new_child(local_config)
+        # ignore empty local config
+        if local_config:
+            print("Using local config from: ", local_config_file, file=stderr)
+            return config.new_child(local_config)
+        else:
+            print("Ignoring empty local config from: ", local_config_file, file=stderr)
     except FileNotFoundError:
         print(
             "No local config file at `{}` detected, using global one".format(
                 local_config_file
-            )
+            ),
+            file=stderr,
         )
     except PermissionError:
         print(
             "Local config file `{}` found but could not read it. Skipping".format(
                 local_config_file
-            )
+            ),
+            file=stderr,
         )
     except BaseException as e:
-        print("Unexpected error: `{}`. Aborting".format(e))
+        print("Unexpected error: `{}`. Aborting".format(e), file=stderr)
         exit(1)
     return config
 
@@ -141,18 +160,30 @@ def main() -> int:
         default=config["output_folder"],
     )
     parser.add_argument(
+        "-t",
+        "--output-template",
+        type=Template,
+        help="""Template string to construct the name of the output file. The values
+            are taken from the input filename. Don't forget to use single-ticks to
+            prevent your shell from expanding the arguments. $stem: Filename without
+            suffix. $suffix:
+            Rightmost extension with leading dot.""",
+        default=config["output_template"],
+    )
+    parser.add_argument(
         "-g", "--gui", help="Startet den GUI-Modus", action="store_true"
     )
     parser.add_argument(
         "-d",
         "--dump-default-config",
         help="Print the default config in TOML format, useful to create a local config.",
+        action="store_true",
     )
 
     args = parser.parse_args()
 
     if args.dump_default_config:
-        print(toml.dumps(default_config))
+        print(toml.dumps({key: str(value) for key, value in default_config.items()}))
         return 0
     if args.gui:
         if not config["zenity_path"]:
@@ -232,10 +263,17 @@ def main() -> int:
         except CalledProcessError as e:
             error_msg = PDFTK_UNKNOWN_ERROR.format(error=e, cmd=e.args)
             show_error_msg(error_msg)
-
-        output_filename = Path(
-            args.output_folder / (file.stem + "_watermark" + file.suffix)
-        )
+        output_template_params = {"stem": file.stem, "suffix": file.suffix}
+        try:
+            output_filename = Path(
+                args.output_folder
+                / args.output_template.substitute(output_template_params)
+            )
+        except (KeyError, ValueError) as e:
+            error_msg = OUTPUT_TEMPLATE_ERROR.format(
+                error=e, template=args.output_template
+            )
+            show_error_msg(error_msg)
         try:
             with open(output_filename, "wb") as output_file:
                 output_file.write(signed_file)
